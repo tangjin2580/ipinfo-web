@@ -1,0 +1,28 @@
+/* 这里是全局样式，可以包括全局的 CSS 规则 */
+
+.loading {
+  text-align: center;
+  margin: 10px 0;
+  color: #007BFF;
+}
+
+.error {
+  color: red;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.result-container {
+  margin-top: 15px;
+}
+
+.ip-info-box {
+  margin: 10px 0;
+  padding: 15px;
+  border: 1px solid #007BFF;
+  border-radius: 5px;
+  background-color: rgba(0, 123, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* 省略其他样式... */
