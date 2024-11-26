@@ -78,8 +78,11 @@ export default {
       this.error = '';
       this.ipInfos = [];
 
-      // 清理用户输入，移除 http:// 和 https://
-      const sanitizedInput = this.ipInput.replace(/^https?:\/\//, '');
+      // 清理用户输入，移除 http:// 和 https://，去掉端口号和斜杠
+      const sanitizedInput = this.ipInput
+          .replace(/^https?:\/\//, '') // 移除 http:// 和 https://
+          .replace(/:\d+/, '') // 移除端口号 (例如: :8999)
+          .replace(/\/.*$/, ''); // 移除后面的斜杠及其后面的部分
 
       console.log(`用户输入: ${sanitizedInput}`);
       console.log(`自定义 DNS: ${this.dnsInput}`);
@@ -166,7 +169,7 @@ export default {
 .app-container {
   font-family: 'Arial', sans-serif;
   padding: 20px;
-  background-image: url('https://your-default-background-url.com'); /* 设置默认背景 */
+  background-image: url('https://https://picsum.photos/1920/1080/?random'); /* 设置默认背景 */
   background-repeat: no-repeat;
   background-size: cover;
 }
@@ -294,7 +297,6 @@ body.dark-mode .container {
   background-color: rgba(0, 0, 0, 0.2); /* 深色背景，带有透明度 */
   border-color: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px); /* 添加毛玻璃效果 */
-
 }
 
 body.dark-mode .input,
@@ -306,13 +308,13 @@ body.dark-mode .ip-info-box {
 
 body.dark-mode .queryBtn,
 body.dark-mode .clearBtn,
-body.dark-mode .themeToggle{
+body.dark-mode .themeToggle {
   background-color: #ff4081;
 }
 
 body.dark-mode .queryBtn:hover,
 body.dark-mode .clearBtn:hover,
-body.dark-mode .themeToggle:hover{
+body.dark-mode .themeToggle:hover {
   background-color: #f50057;
 }
 
