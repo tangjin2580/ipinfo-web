@@ -78,7 +78,10 @@ export default {
       this.error = '';
       this.ipInfos = [];
 
-      console.log(`用户输入: ${this.ipInput}`);
+      // 清理用户输入，移除 http:// 和 https://
+      const sanitizedInput = this.ipInput.replace(/^https?:\/\//, '');
+
+      console.log(`用户输入: ${sanitizedInput}`);
       console.log(`自定义 DNS: ${this.dnsInput}`);
       console.log(`后端服务器地址: ${this.serverInput}`);
 
@@ -86,10 +89,10 @@ export default {
         let ips = [];
         const ipPattern = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
-        if (ipPattern.test(this.ipInput)) {
-          ips.push(this.ipInput);
+        if (ipPattern.test(sanitizedInput)) {
+          ips.push(sanitizedInput);
         } else {
-          const resolvedIPs = await this.resolveDomain(this.ipInput, this.dnsInput);
+          const resolvedIPs = await this.resolveDomain(sanitizedInput, this.dnsInput);
           if (resolvedIPs) {
             ips = resolvedIPs;
           } else {
@@ -166,7 +169,6 @@ export default {
   background-image: url('https://your-default-background-url.com'); /* 设置默认背景 */
   background-repeat: no-repeat;
   background-size: cover;
-
 }
 
 .container {
