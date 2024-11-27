@@ -63,7 +63,7 @@ export default {
     return {
       ipInput: '',
       dnsInput: '8.8.8.8',
-      serverInput: 'http://cxsdwan.com:8999/',
+      serverInput: 'http://127.0.0.1:8080/',
       loading: false,
       error: '',
       ipInfos: [],
