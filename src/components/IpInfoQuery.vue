@@ -19,11 +19,17 @@
       <datalist id="dnsList">
         <option value="8.8.8.8">Google DNS</option>
         <option value="8.8.4.4">Google DNS</option>
+        <option value="183.2.185.197">峰盟 DNS</option>
         <option value="1.1.1.1">Cloudflare DNS</option>
         <option value="9.9.9.9">Quad9 DNS</option>
         <option value="114.114.114.114">中国 DNS</option>
         <option value="223.5.5.5">阿里云 DNS</option>
         <option value="168.126.63.1">韩国 DNS</option>
+        <option value="210.220.163.82">韩国 SK Broadband DNS</option>
+        <option value="168.126.63.1">韩国 KT DNS</option>
+        <option value="133.242.0.200">日本 NTT DNS</option>
+        <option value="101.102.103.104">日本 OCN DNS</option>
+        <option value="202.12.27.33">日本 SoftBank DNS</option>
       </datalist>
 
       <div class="ip-container">
@@ -47,6 +53,20 @@
           <p>城市: <span>{{ info.city || '未知' }}</span></p>
         </div>
       </div>
+
+      <div class="dns-results-container">
+        <h2 @click="toggleDnsResults" style="cursor: pointer;">
+          其他 DNS 解析结果 <span>{{ showDnsResults ? '▲' : '▼' }}</span>
+        </h2>
+        <div v-if="showDnsResults">
+          <div v-for="result in resolvedIPs" :key="result.dns" class="ip-info-box">
+            <p>DNS: <strong>{{ result.dns }}</strong></p>
+            <p>解析的 IP: <strong>{{ result.ip }}</strong></p>
+            <p>国家: <span>{{ result.country || '未知' }}</span></p>
+            <p>城市: <span>{{ result.city || '未知' }}</span></p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="container">
@@ -63,13 +83,15 @@ export default {
     return {
       ipInput: '',
       dnsInput: '8.8.8.8',
-      serverInput: 'http://cxsdwan.com:8999/',
+      serverInput: 'http://127.0.0.1:8080/',
       loading: false,
       error: '',
       ipInfos: [],
+      resolvedIPs: [],
       localIP: '',
       clock: this.formatTime(new Date()),
-      isDarkMode: false, // 追踪深色模式状态
+      isDarkMode: false,
+      showDnsResults: false, // 控制其他 DNS 解析结果的显示状态
     };
   },
   methods: {
@@ -77,16 +99,13 @@ export default {
       this.loading = true;
       this.error = '';
       this.ipInfos = [];
+      this.resolvedIPs = [];
+      this.showDnsResults = false; // 每次查询时清空显示状态
 
-      // 清理用户输入，移除 http:// 和 https://，去掉端口号和斜杠
       const sanitizedInput = this.ipInput
-          .replace(/^https?:\/\//, '') // 移除 http:// 和 https://
-          .replace(/:\d+/, '') // 移除端口号 (例如: :8999)
-          .replace(/\/.*$/, ''); // 移除后面的斜杠及其后面的部分
-
-      console.log(`用户输入: ${sanitizedInput}`);
-      console.log(`自定义 DNS: ${this.dnsInput}`);
-      console.log(`后端服务器地址: ${this.serverInput}`);
+          .replace(/^https?:\/\//, '')
+          .replace(/:\d+/, '')
+          .replace(/\/.*$/, '');
 
       try {
         let ips = [];
@@ -111,15 +130,16 @@ export default {
           const jsonResponse = await response.json();
           this.ipInfos.push(...jsonResponse);
         }
+
+        // 新增: 查询其他 DNS
+        await this.queryOtherDns(sanitizedInput);
       } catch (err) {
         this.error = err.message;
-        console.error('查询 IP 发生错误:', err);
       } finally {
         this.loading = false;
       }
     },
     async resolveDomain(domain, dns_server) {
-      console.log(`解析域名: ${domain} 使用 DNS: ${dns_server}`);
       try {
         const response = await fetch(`${this.serverInput}/api/resolve/${domain}?dns=${dns_server}`);
         if (!response.ok) {
@@ -132,6 +152,35 @@ export default {
         return null;
       }
     },
+    async queryOtherDns(domain) {
+      const dnsList = [
+        { dns: '8.8.8.8', name: 'Google 8.8' },
+        { dns: '8.8.4.4', name: 'Google 4.4.' },
+        { dns: '183.2.185.197', name: '峰盟 DNS' },
+        { dns: '1.1.1.1', name: 'Cloudflare DNS' },
+        { dns: '114.114.114.114', name: '中国 DNS' },
+        { dns: '223.5.5.5', name: '阿里云 DNS' },
+        { dns: '168.126.63.1', name: '韩国 DNS' },
+        { dns: '210.220.163.82', name: '韩国 SK Broadband DNS' },
+        { dns: '133.242.0.200', name: '日本 NTT DNS' },
+        { dns: '101.102.103.104', name: '日本 OCN DNS' },
+        { dns: '202.12.27.33', name: '日本 SoftBank DNS' },
+      ];
+
+      // 提取国家和城市信息以进行匹配
+      const ipInfoMap = {};
+      for (const info of this.ipInfos) {
+        ipInfoMap[info.ip] = { country: info.country, city: info.city };
+      }
+
+      for (const { dns, name } of dnsList) {
+        const resolvedIP = await this.resolveDomain(domain, dns);
+        if (resolvedIP && ipInfoMap[resolvedIP]) {
+          const { country, city } = ipInfoMap[resolvedIP];
+          this.resolvedIPs.push({ dns: name, ip: resolvedIP, country, city });
+        }
+      }
+    },
     clearDns() {
       this.dnsInput = '';
     },
@@ -139,11 +188,11 @@ export default {
       this.ipInput = '';
     },
     toggleTheme() {
-      this.isDarkMode = !this.isDarkMode; // 切换深色模式状态
+      this.isDarkMode = !this.isDarkMode;
 
       const body = document.body;
       const containers = document.querySelectorAll('.container');
-      body.classList.toggle('dark-mode', this.isDarkMode); // 添加或移除深色模式类
+      body.classList.toggle('dark-mode', this.isDarkMode);
       containers.forEach(container => {
         container.classList.toggle('dark-mode', this.isDarkMode);
       });
@@ -151,6 +200,9 @@ export default {
       body.style.backgroundImage = this.isDarkMode
           ? 'url(https://api.suyanw.cn/api/ys.php)'
           : 'url(https://picsum.photos/1920/1080/?random)';
+    },
+    toggleDnsResults() {
+      this.showDnsResults = !this.showDnsResults; // 切换显示状态
     },
     formatTime(date) {
       return date.toLocaleTimeString();
@@ -169,7 +221,7 @@ export default {
 .app-container {
   font-family: 'Arial', sans-serif;
   padding: 20px;
-  background-image: url('https://https://picsum.photos/1920/1080/?random'); /* 设置默认背景 */
+  background-image: url('https://picsum.photos/1920/1080/?random');
   background-repeat: no-repeat;
   background-size: cover;
 }
@@ -213,7 +265,7 @@ export default {
   cursor: pointer;
   padding: 5px 10px;
   transition: background-color 0.3s;
-  margin-left: 5px; /* 增加左侧的外边距 */
+  margin-left: 5px;
 }
 
 .clearBtn:hover {
@@ -226,7 +278,7 @@ export default {
   margin-top: 5px;
 }
 
-.queryBtn {
+.queryBtn, .themeToggle {
   padding: 10px 15px;
   background-color: #4CAF50;
   color: white;
@@ -236,17 +288,7 @@ export default {
   transition: background-color 0.3s;
 }
 
-.themeToggle {
-  padding: 10px 15px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.queryBtn:hover {
+.queryBtn:hover, .themeToggle:hover {
   background-color: #45a049;
 }
 
@@ -263,6 +305,10 @@ export default {
 }
 
 .result-container {
+  margin-top: 15px;
+}
+
+.dns-results-container {
   margin-top: 15px;
 }
 
@@ -294,9 +340,9 @@ body.dark-mode {
 }
 
 body.dark-mode .container {
-  background-color: rgba(0, 0, 0, 0.2); /* 深色背景，带有透明度 */
+  background-color: rgba(0, 0, 0, 0.2);
   border-color: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px); /* 添加毛玻璃效果 */
+  backdrop-filter: blur(10px);
 }
 
 body.dark-mode .input,
@@ -318,12 +364,11 @@ body.dark-mode .themeToggle:hover {
   background-color: #f50057;
 }
 
-/* 添加深色模式下的浅色文字样式 */
 body.dark-mode label {
-  color: #ddd; /* 浅色 */
+  color: #ddd;
 }
 
 body.dark-mode .title {
-  color: #80e0a7; /* 浅绿色 */
+  color: #80e0a7;
 }
 </style>
