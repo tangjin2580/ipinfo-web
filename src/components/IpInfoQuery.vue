@@ -29,7 +29,6 @@
         <option value="168.126.63.1">韩国 KT DNS</option>
         <option value="133.242.0.200">日本 NTT DNS</option>
         <option value="101.102.103.104">日本 OCN DNS</option>
-        <option value="202.12.27.33">日本 SoftBank DNS</option>
       </datalist>
 
       <div class="ip-container">
@@ -47,10 +46,12 @@
       <div v-if="error" class="error">{{ error }}</div>
 
       <div class="result-container" id="resolvedIPsContainer">
-        <div v-for="info in ipInfos" :key="info.ip" class="ip-info-box">
-          <p>您查询的信息: <strong>{{ info.ip }}</strong></p>
-          <p>国家: <span>{{ info.country || '未知' }}</span></p>
-          <p>城市: <span>{{ info.city || '未知' }}</span></p>
+        <div class="results-grid">
+          <div v-for="info in ipInfos" :key="info.ip" class="ip-info-box">
+            <p>您查询的信息: <strong>{{ info.ip }}</strong></p>
+            <p>国家: <span>{{ info.country || '未知' }}</span></p>
+            <p>城市: <span>{{ info.city || '未知' }}</span></p>
+          </div>
         </div>
       </div>
 
@@ -59,11 +60,13 @@
           其他 DNS 解析结果 <span>{{ showDnsResults ? '▲' : '▼' }}</span>
         </h2>
         <div v-if="showDnsResults">
-          <div v-for="result in resolvedIPs" :key="result.dns" class="ip-info-box">
-            <p>DNS: <strong>{{ result.dns }}</strong></p>
-            <p>解析的 IP: <strong>{{ result.ip }}</strong></p>
-            <p>国家: <span>{{ result.country || '未知' }}</span></p>
-            <p>城市: <span>{{ result.city || '未知' }}</span></p>
+          <div class="results-grid">
+            <div v-for="result in resolvedIPs" :key="result.dns" class="ip-info-box">
+              <p>DNS: <strong>{{ result.dns }}</strong></p>
+              <p>解析的 IP: <strong>{{ result.ip }}</strong></p>
+              <p>国家: <span>{{ result.country || '查不动了' }}</span></p>
+              <p>城市: <span>{{ result.city || '查不动了' }}</span></p>
+            </div>
           </div>
         </div>
       </div>
@@ -71,7 +74,7 @@
 
     <div class="container">
       <h1 class="title">本地信息</h1>
-      <p>IP和位置：<strong>{{ localIP }}</strong></p>
+      <p>还没写：将就看把</p>
       <p class="clock">{{ clock }}</p>
     </div>
   </div>
@@ -91,7 +94,7 @@ export default {
       localIP: '',
       clock: this.formatTime(new Date()),
       isDarkMode: false,
-      showDnsResults: false, // 控制其他 DNS 解析结果的显示状态
+      showDnsResults: false, // 默认值设为false，开始时隐藏结果
     };
   },
   methods: {
@@ -131,7 +134,7 @@ export default {
           this.ipInfos.push(...jsonResponse);
         }
 
-        // 新增: 查询其他 DNS
+        // 查询其他 DNS
         await this.queryOtherDns(sanitizedInput);
       } catch (err) {
         this.error = err.message;
@@ -154,9 +157,8 @@ export default {
     },
     async queryOtherDns(domain) {
       const dnsList = [
-        { dns: '8.8.8.8', name: 'Google 8.8' },
-        { dns: '8.8.4.4', name: 'Google 4.4.' },
-        { dns: '183.2.185.197', name: '峰盟 DNS' },
+        { dns: '8.8.8.8', name: 'Google DNS' },
+        { dns: '8.8.4.4', name: 'Google DNS' },
         { dns: '1.1.1.1', name: 'Cloudflare DNS' },
         { dns: '114.114.114.114', name: '中国 DNS' },
         { dns: '223.5.5.5', name: '阿里云 DNS' },
@@ -164,22 +166,17 @@ export default {
         { dns: '210.220.163.82', name: '韩国 SK Broadband DNS' },
         { dns: '133.242.0.200', name: '日本 NTT DNS' },
         { dns: '101.102.103.104', name: '日本 OCN DNS' },
-        { dns: '202.12.27.33', name: '日本 SoftBank DNS' },
       ];
 
-      // 提取国家和城市信息以进行匹配
-      const ipInfoMap = {};
-      for (const info of this.ipInfos) {
-        ipInfoMap[info.ip] = { country: info.country, city: info.city };
-      }
+      const promises = dnsList.map(({ dns }) =>
+          this.resolveDomain(domain, dns).then(resolvedIP => {
+            if (resolvedIP) {
+              this.resolvedIPs.push({ dns, ip: resolvedIP });
+            }
+          })
+      );
 
-      for (const { dns, name } of dnsList) {
-        const resolvedIP = await this.resolveDomain(domain, dns);
-        if (resolvedIP && ipInfoMap[resolvedIP]) {
-          const { country, city } = ipInfoMap[resolvedIP];
-          this.resolvedIPs.push({ dns: name, ip: resolvedIP, country, city });
-        }
-      }
+      await Promise.all(promises); // 同时处理所有 DNS 查询
     },
     clearDns() {
       this.dnsInput = '';
@@ -265,7 +262,7 @@ export default {
   cursor: pointer;
   padding: 5px 10px;
   transition: background-color 0.3s;
-  margin-left: 5px;
+  margin-left: 5px; /* 增加左侧的外边距 */
 }
 
 .clearBtn:hover {
@@ -312,8 +309,14 @@ export default {
   margin-top: 15px;
 }
 
+.results-grid {
+  display: flex;
+  flex-wrap: wrap; /* 允许换行 */
+  gap: 15px; /* 设置盒子的间隔 */
+}
+
 .ip-info-box {
-  margin: 10px 0;
+  flex: 1 1 calc(32% - 10px); /* 设置为三列，每个占32%宽度 */
   padding: 15px;
   border: 1px solid #007BFF;
   border-radius: 5px;
@@ -365,10 +368,10 @@ body.dark-mode .themeToggle:hover {
 }
 
 body.dark-mode label {
-  color: #ddd;
+  color: #ddd; /* 浅色 */
 }
 
 body.dark-mode .title {
-  color: #80e0a7;
+  color: #80e0a7; /* 浅绿色 */
 }
 </style>
