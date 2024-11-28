@@ -63,6 +63,7 @@
           <div class="results-grid">
             <div v-for="result in resolvedIPs" :key="result.dns" class="ip-info-box">
               <p>DNS: <strong>{{ result.dns }}</strong></p>
+              <p>DNS 名称: <strong>{{ result.name }}</strong></p> <!-- 新增显示 DNS 名称 -->
               <p>解析的 IP: <strong>{{ result.ip }}</strong></p>
               <p>国家: <span>{{ result.country || '查不动了' }}</span></p>
               <p>城市: <span>{{ result.city || '查不动了' }}</span></p>
@@ -159,6 +160,7 @@ export default {
       const dnsList = [
         { dns: '8.8.8.8', name: 'Google DNS' },
         { dns: '8.8.4.4', name: 'Google DNS' },
+        { dns: '183.2.185.197', name: '峰盟 DNS' },
         { dns: '1.1.1.1', name: 'Cloudflare DNS' },
         { dns: '114.114.114.114', name: '中国 DNS' },
         { dns: '223.5.5.5', name: '阿里云 DNS' },
@@ -168,10 +170,10 @@ export default {
         { dns: '101.102.103.104', name: '日本 OCN DNS' },
       ];
 
-      const promises = dnsList.map(({ dns }) =>
+      const promises = dnsList.map(({ dns, name }) =>
           this.resolveDomain(domain, dns).then(resolvedIP => {
             if (resolvedIP) {
-              this.resolvedIPs.push({ dns, ip: resolvedIP });
+              this.resolvedIPs.push({ dns, ip: resolvedIP, name }); // 添加 name 属性
             }
           })
       );
