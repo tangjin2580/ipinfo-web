@@ -40,7 +40,7 @@
       <div class="button-container">
         <button class="queryBtn" @click="queryIP">查询信息</button>
         <button class="themeToggle" @click="toggleTheme">切换主题</button>
-        <button class="clearCacheBtn" @click="clearCache">清理缓存</button> <!-- 新增清理缓存按钮 -->
+        <button class="clearCacheBtn" @click="clearCache">清理缓存</button>
       </div>
 
       <div v-if="loading" class="loading">加载中...</div>
@@ -49,7 +49,7 @@
       <div class="result-container" id="resolvedIPsContainer">
         <div class="results-grid">
           <div v-for="info in ipInfos" :key="info.ip" class="ip-info-box">
-            <p>您查询的信息: <strong>{{ info.ip }}</strong></p>
+            <p>解析的信息: <strong>{{ info.ip }}</strong></p>
             <p>国家: <span>{{ info.country || '未知' }}</span></p>
             <p>城市: <span>{{ info.city || '未知' }}</span></p>
           </div>
@@ -57,7 +57,7 @@
       </div>
 
       <div class="dns-results-container">
-        <h2 @click="toggleDnsResults" style="cursor: pointer;">
+        <h2 @click="toggleDnsResults" style="cursor: pointer; text-align: center;">
           其他 DNS 解析结果 <span>{{ showDnsResults ? '▲' : '▼' }}</span>
         </h2>
         <div v-if="showDnsResults">
@@ -67,7 +67,7 @@
               <p>DNS 名称: <strong>{{ result.name }}</strong></p>
               <p>解析的 IP:</p>
               <ul>
-                <li v-for="ip in result.ip" :key="ip">{{ ip }}</li> <!-- 将 IP 以列表形式显示 -->
+                <li v-for="ip in result.ip" :key="ip">{{ ip }}</li>
               </ul>
             </div>
           </div>
@@ -77,7 +77,7 @@
 
     <div class="container">
       <h1 class="title">本地信息</h1>
-      <p>还没写：将就看把</p>
+      <p class="loca-info-text" style="text-align: center;" >开发中</p>
       <p class="clock">{{ clock }}</p>
     </div>
   </div>
@@ -101,6 +101,19 @@ export default {
     };
   },
   methods: {
+    async fetchHistory() {
+      try {
+        const response = await fetch(`${this.serverInput}/api/history`);
+        if (!response.ok) {
+          throw new Error('无法获取历史记录');
+        }
+        const data = await response.json();
+        this.history = data; // 更新历史记录
+      } catch (error) {
+        console.error('获取历史记录失败:', error);
+      }
+    },
+
     async queryIP() {
       this.loading = true;
       this.error = '';
@@ -136,6 +149,11 @@ export default {
           const jsonResponse = await response.json();
           this.ipInfos.push(...jsonResponse);
         }
+
+        // 保存查询记录（加入历史记录保存逻辑）
+        const country = this.ipInfos.length > 0 ? this.ipInfos[0].country : '未知';
+        const city = this.ipInfos.length > 0 ? this.ipInfos[0].city : '没有记录';
+        await this.saveHistory(this.ipInput, country, city);
 
         // 查询其他 DNS
         await this.queryOtherDns(sanitizedInput);
@@ -208,6 +226,21 @@ export default {
       }
     },
 
+    async saveHistory(domain, country, city) {
+      // 保存历史记录的函数
+      try {
+        await fetch(`${this.serverInput}/api/history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ domain, country, city })
+        });
+      } catch (error) {
+        console.error('保存历史记录失败:', error);
+      }
+    },
+
     toggleTheme() {
       this.isDarkMode = !this.isDarkMode;
 
@@ -237,6 +270,7 @@ export default {
       this.clock = this.formatTime(new Date());
     }, 1000);
     this.localIP = '192.168.1.1'; // 占位符，替换为实际方法以获取本地IP
+    this.fetchHistory(); // 初始加载历史记录
   },
 };
 </script>
@@ -257,7 +291,7 @@ export default {
   border-radius: 10px;
   background-color: #ffffff;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
+  max-width: 60%;
 }
 
 .title {
@@ -343,12 +377,12 @@ export default {
 }
 
 .ip-info-box {
-  flex: 1 1 calc(32% - 10px); /* 设置为三列，每个占32%宽度 */
+  flex: 1 1 calc(33.33% - 10px); /* 设置为三列，每个占32%宽度 */
   padding: 15px;
   border: 1px solid #007BFF;
   border-radius: 5px;
   background-color: rgba(0, 123, 255, 0.1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(1px);
   transition: box-shadow 0.3s;
 }
 
