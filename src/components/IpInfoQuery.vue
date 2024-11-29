@@ -25,7 +25,7 @@
         <option value="114.114.114.114">中国 DNS</option>
         <option value="223.5.5.5">阿里云 DNS</option>
         <option value="168.126.63.1">韩国 DNS</option>
-        <option value="210.220.163.82">韩国 SK Broadband DNS</option>
+        <option value="210.220.163.82">韩国 SK DNS</option>
         <option value="168.126.63.1">韩国 KT DNS</option>
         <option value="133.242.0.200">日本 NTT DNS</option>
         <option value="101.102.103.104">日本 OCN DNS</option>
@@ -40,6 +40,7 @@
       <div class="button-container">
         <button class="queryBtn" @click="queryIP">查询信息</button>
         <button class="themeToggle" @click="toggleTheme">切换主题</button>
+        <button class="clearCacheBtn" @click="clearCache">清理缓存</button> <!-- 新增清理缓存按钮 -->
       </div>
 
       <div v-if="loading" class="loading">加载中...</div>
@@ -63,10 +64,11 @@
           <div class="results-grid">
             <div v-for="result in resolvedIPs" :key="result.dns" class="ip-info-box">
               <p>DNS: <strong>{{ result.dns }}</strong></p>
-              <p>DNS 名称: <strong>{{ result.name }}</strong></p> <!-- 新增显示 DNS 名称 -->
-              <p>解析的 IP: <strong>{{ result.ip }}</strong></p>
-              <p>国家: <span>{{ result.country || '查不动了' }}</span></p>
-              <p>城市: <span>{{ result.city || '查不动了' }}</span></p>
+              <p>DNS 名称: <strong>{{ result.name }}</strong></p>
+              <p>解析的 IP:</p>
+              <ul>
+                <li v-for="ip in result.ip" :key="ip">{{ ip }}</li> <!-- 将 IP 以列表形式显示 -->
+              </ul>
             </div>
           </div>
         </div>
@@ -143,6 +145,7 @@ export default {
         this.loading = false;
       }
     },
+
     async resolveDomain(domain, dns_server) {
       try {
         const response = await fetch(`${this.serverInput}/api/resolve/${domain}?dns=${dns_server}`);
@@ -156,6 +159,7 @@ export default {
         return null;
       }
     },
+
     async queryOtherDns(domain) {
       const dnsList = [
         { dns: '8.8.8.8', name: 'Google DNS' },
@@ -165,7 +169,7 @@ export default {
         { dns: '114.114.114.114', name: '中国 DNS' },
         { dns: '223.5.5.5', name: '阿里云 DNS' },
         { dns: '168.126.63.1', name: '韩国 DNS' },
-        { dns: '210.220.163.82', name: '韩国 SK Broadband DNS' },
+        { dns: '210.220.163.82', name: '韩国 SK DNS' },
         { dns: '133.242.0.200', name: '日本 NTT DNS' },
         { dns: '101.102.103.104', name: '日本 OCN DNS' },
       ];
@@ -180,12 +184,30 @@ export default {
 
       await Promise.all(promises); // 同时处理所有 DNS 查询
     },
+
     clearDns() {
       this.dnsInput = '';
     },
+
     clearIp() {
       this.ipInput = '';
     },
+
+    async clearCache() { // 清理缓存方法
+      try {
+        const response = await fetch(`${this.serverInput}/api/clear-cache`, {
+          method: 'POST',
+        });
+        if (!response.ok) {
+          throw new Error('无法清理缓存');
+        }
+        const result = await response.json();
+        alert(result.message); // 显示成功消息
+      } catch (err) {
+        alert(err.message); // 显示错误信息
+      }
+    },
+
     toggleTheme() {
       this.isDarkMode = !this.isDarkMode;
 
@@ -200,13 +222,16 @@ export default {
           ? 'url(https://api.suyanw.cn/api/ys.php)'
           : 'url(https://picsum.photos/1920/1080/?random)';
     },
+
     toggleDnsResults() {
       this.showDnsResults = !this.showDnsResults; // 切换显示状态
     },
+
     formatTime(date) {
       return date.toLocaleTimeString();
     },
   },
+
   created() {
     setInterval(() => {
       this.clock = this.formatTime(new Date());
@@ -256,7 +281,7 @@ export default {
   justify-content: space-between;
 }
 
-.clearBtn {
+.clearBtn, .clearCacheBtn { /* 样式合并 */
   background-color: #f44336;
   color: white;
   border: none;
@@ -267,7 +292,7 @@ export default {
   margin-left: 5px; /* 增加左侧的外边距 */
 }
 
-.clearBtn:hover {
+.clearBtn:hover, .clearCacheBtn:hover { /* 样式合并 */
   background-color: #e53935;
 }
 
@@ -359,13 +384,15 @@ body.dark-mode .ip-info-box {
 
 body.dark-mode .queryBtn,
 body.dark-mode .clearBtn,
-body.dark-mode .themeToggle {
+body.dark-mode .themeToggle,
+body.dark-mode .clearCacheBtn {
   background-color: #ff4081;
 }
 
 body.dark-mode .queryBtn:hover,
 body.dark-mode .clearBtn:hover,
-body.dark-mode .themeToggle:hover {
+body.dark-mode .themeToggle:hover,
+body.dark-mode .clearCacheBtn:hover {
   background-color: #f50057;
 }
 
