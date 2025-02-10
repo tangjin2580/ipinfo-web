@@ -5,7 +5,7 @@
       <div v-if="isVisible" class="results-grid">
         <div v-for="(record, index) in history" :key="index" class="ip-info-box">
           <p>查询域名: <span>{{ record.domain }}</span></p>
-          <p>查询时间: <span>{{ record.time }}</span></p>
+          <p>查询时间: <span>{{ record.timestamp }}</span></p>
           <p>查询信息: <strong>{{ record.ip }}</strong></p>
           <p>国家: <span>{{ record.country || '未知' }}</span></p>
           <p>城市: <span>{{ record.city || '没有记录' }}</span></p>
