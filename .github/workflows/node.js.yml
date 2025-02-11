@@ -29,3 +29,65 @@ jobs:
       - name: Build the project
         run: npm run build --if-present
         continue-on-error: true  # 允许构建步骤失败而不中断工作流
+      - name: 获取当前版本号
+        id: get_version
+        run: |
+          # 获取最新的版本号标签
+          current_version=$(git tag | grep '^v[0-9]\+\.[0-9]\+$' | sort -V | tail -n 1)
+
+          # 如果没有找到版本号，默认为 v0.1
+          if [ -z "$current_version" ]; then
+            current_version="v0.1"
+          fi
+
+          # 提取版本号前缀和后缀
+          version_prefix=${current_version%.*}
+          version_suffix=${current_version##*.}
+
+          # 递增后缀
+          new_version_suffix=$((version_suffix + 1))
+
+          # 拼接新的版本号
+          new_version="${version_prefix}.${new_version_suffix}"
+
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "生成的新版本号: $new_version"  # 输出新的版本号
+
+      - name: 检查是否已经存在 Release
+        id: check_release
+        run: |
+          if git tag | grep -q "^${{ env.new_version }}$"; then
+            echo "Release ${{ env.new_version }} 已存在."
+            echo "skip_release=true" >> $GITHUB_ENV
+          else
+            echo "skip_release=false" >> $GITHUB_ENV
+          fi
+
+      - name: 创建 Release
+        if: env.skip_release == 'false'
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.new_version }}
+          release_name: ${{ env.new_version }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传打包文件到 Release
+        if: env.skip_release == 'false'
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ github.workspace }}/server/dist
+          asset_name: app_nuitka_${{ env.new_version }}
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传打包文件为 Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: flask-app_nuitka_${{ env.new_version }}
+          path: ${{ github.workspace }}/server/dist
