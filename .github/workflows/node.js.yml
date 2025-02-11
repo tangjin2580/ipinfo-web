@@ -36,8 +36,11 @@ jobs:
         id: get_version
         run: |
           # 获取最新的版本号标签
-          
-          current_version=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0")
+          curl -o version.latest https://api.github.com/repos/tangjin2580/ipinfo-web/releases/latest
+      - name: 解析版本号
+        id: parse_version
+        run: |
+          current_version=$(jq -r '.tag_name' version.latest)
           echo "当前版本号: $current_version"
           
           # urrent_version=$(git tag | grep '^v[0-9]\+\.[0-9]\+$' | sort -V | tail -n 1)
