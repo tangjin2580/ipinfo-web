@@ -40,7 +40,7 @@ jobs:
       - name: 解析版本号
         id: parse_version
         run: |
-          current_version=$(jq -r '.tag_name' version.latest)
+          current_version=$(cat version.latest | grep -E 'tag_name\": \"v[0-9]+\.[0-9]+' -o | head -n 1 | tr -d 'tag_name\": \"')
           echo "当前版本号: $current_version"
           
           # urrent_version=$(git tag | grep '^v[0-9]\+\.[0-9]\+$' | sort -V | tail -n 1)
