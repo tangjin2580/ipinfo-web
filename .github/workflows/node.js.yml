@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write  # 根据需要设置适当的权限
   pull-requests: write
+  commits: write
 
 jobs:
   build:
@@ -57,22 +58,36 @@ jobs:
 
       - name: 创建发布
         id: create_release
+        run: |
+          if git tag | grep -q "^${{ env.new_version }}$"; then
+            echo "Release ${{ env.new_version }} 已存在."
+            echo "skip_release=true" >> $GITHUB_ENV
+          else
+            echo "skip_release=false" >> $GITHUB_ENV
+          fi
+
+      - name: 创建 Release
+        if: env.skip_release == 'false'
+        id: create_release
         uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.new_version }}
-          release_name: Release ${{ env.new_version }}
+          release_name: ${{ env.new_version }}
           draft: false
           prerelease: false
+        env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 压缩dist文件夹
         run: zip -r dist.zip ./dist
 
       - name: 上传构建文件到GitHub Release
+        if: env.skip_release == 'false'
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./dist.zip
           asset_name: dist.zip
           asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
