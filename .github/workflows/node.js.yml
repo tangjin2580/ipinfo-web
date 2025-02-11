@@ -1,3 +1,10 @@
+name: 发布工作流
+
+on:
+  push:
+    branches:
+      - master  # 当master分支有push事件时触发
+
 jobs:
   build:
     runs-on: ubuntu-latest
