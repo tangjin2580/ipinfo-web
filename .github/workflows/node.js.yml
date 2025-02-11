@@ -1,34 +1,21 @@
-name: Node.js CI
-
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: 检出代码
+        uses: actions/checkout@v2
+
+      - name: 设置Node.js环境
+        uses: actions/setup-node@v2
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Fix npm audit issues
-        run: npm audit fix --force
-      - name: Build the project
-        run: npm run build --if-present
-        continue-on-error: true  # 允许构建步骤失败而不中断工作流
+          node-version: 'latest'
+
+      - name: 安装依赖
+        run: npm install
+
+      - name: 构建项目
+        run: npm run build
 
       - name: 获取当前版本号
         id: get_version
@@ -54,41 +41,24 @@ jobs:
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "生成的新版本号: $new_version"  # 输出新的版本号
 
-      - name: 检查是否已经存在 Release
-        id: check_release
-        run: |
-          if git tag | grep -q "^${{ env.new_version }}$"; then
-            echo "Release ${{ env.new_version }} 已存在."
-            echo "skip_release=true" >> $GITHUB_ENV
-          else
-            echo "skip_release=false" >> $GITHUB_ENV
-          fi
-
-      - name: 创建 Release
-        if: env.skip_release == 'false'
+      - name: 创建发布
         id: create_release
         uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.new_version }}
-          release_name: ${{ env.new_version }}
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.new_version }}
+          release_name: Release ${{ env.new_version }}
+          draft: false
+          prerelease: false
 
-      - name: 上传打包文件到 Release
-        if: env.skip_release == 'false'
+      - name: 压缩dist文件夹
+        run: zip -r your-build-file.zip ./dist
+
+      - name: 上传构建文件到GitHub Release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/dist/
-          asset_name: app_nuitka_${{ env.new_version }}
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 上传打包文件为 Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: flask-app_nuitka_${{ env.new_version }}
-          path: ${{ github.workspace }}/dist/
+          asset_path: ./your-build-file.zip
+          asset_name: your-build-file.zip
+          asset_content_type: application/zip
