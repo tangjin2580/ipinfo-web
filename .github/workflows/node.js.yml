@@ -44,8 +44,10 @@ jobs:
           version_prefix=${current_version%.*}
           version_suffix=${current_version##*.}
 
-          # 递增后缀
-          new_version_suffix=$((version_suffix + 1))
+          # 检查标签是否已经存在，如果存在则递增主版本号
+          while git tag | grep -q "^${version_prefix}.${new_version_suffix}$"; do
+            new_version_suffix=$((version_suffix + 1))
+          done
 
           # 拼接新的版本号
           new_version="${version_prefix}.${new_version_suffix}"
@@ -65,12 +67,12 @@ jobs:
           prerelease: false
 
       - name: 压缩dist文件夹
-        run: zip -r your-build-file.zip ./dist
+        run: zip -r dist.zip ./dist
 
       - name: 上传构建文件到GitHub Release
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./your-build-file.zip
-          asset_name: your-build-file.zip
+          asset_path: ./dist.zip
+          asset_name: dist.zip
           asset_content_type: application/zip
