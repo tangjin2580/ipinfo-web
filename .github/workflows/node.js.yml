@@ -46,6 +46,9 @@ jobs:
           # 提取版本号前缀和后缀
           version_prefix=${current_version%.*}
           version_suffix=${current_version##*.}
+          
+          # 初始化 new_version_suffix
+          new_version_suffix=$((version_suffix + 1))
 
           # 检查标签是否已经存在，如果存在则递增次版本号
           while git tag | grep -q "^${version_prefix}.${new_version_suffix}$"; do
