@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write  # 根据需要设置适当的权限
-  pull-requests: write
 
 jobs:
   build:
@@ -25,9 +24,13 @@ jobs:
 
       - name: 安装依赖
         run: npm install
+        # 添加错误处理
+        if: success()
 
       - name: 构建项目
         run: npm run build
+        # 添加错误处理
+        if: success()
 
       - name: 获取当前版本号
         id: get_version
@@ -44,7 +47,7 @@ jobs:
           version_prefix=${current_version%.*}
           version_suffix=${current_version##*.}
 
-          # 检查标签是否已经存在，如果存在则递增主版本号
+          # 检查标签是否已经存在，如果存在则递增次版本号
           while git tag | grep -q "^${version_prefix}.${new_version_suffix}$"; do
             new_version_suffix=$((version_suffix + 1))
           done
@@ -55,8 +58,8 @@ jobs:
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "生成的新版本号: $new_version"  # 输出新的版本号
 
-      - name: 创建发布
-        id: create_release
+      - name: 检查版本号是否已存在
+        id: check_release
         run: |
           if git tag | grep -q "^${{ env.new_version }}$"; then
             echo "Release ${{ env.new_version }} 已存在."
@@ -67,7 +70,6 @@ jobs:
 
       - name: 创建 Release
         if: env.skip_release == 'false'
-        id: create_release
         uses: actions/create-release@v1
         with:
           tag_name: ${{ env.new_version }}
@@ -75,16 +77,18 @@ jobs:
           draft: false
           prerelease: false
         env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 压缩dist文件夹
         run: zip -r dist.zip ./dist
+        # 添加错误处理
+        if: success()
 
       - name: 上传构建文件到GitHub Release
         if: env.skip_release == 'false'
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.check_release.outputs.upload_url }}
           asset_path: ./dist.zip
           asset_name: dist.zip
           asset_content_type: application/zip
