@@ -6,6 +6,10 @@ on:
       - master  # 或者你想要触发这个工作流的分支名
   workflow_dispatch:  # 允许手动触发工作流
 
+permissions:
+  contents: write  # 根据需要设置适当的权限
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
