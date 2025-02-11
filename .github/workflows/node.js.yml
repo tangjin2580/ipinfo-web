@@ -3,7 +3,7 @@ name: 发布工作流
 on:
   push:
     branches:
-      - master  # 当master分支有push事件时触发
+      - main  # 或者你想要触发这个工作流的分支名
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
       - name: 设置Node.js环境
         uses: actions/setup-node@v2
         with:
-          node-version: 'latest'
+          node-version: '22.x'  # 指定一个具体的Node.js版本
 
       - name: 安装依赖
         run: npm install
