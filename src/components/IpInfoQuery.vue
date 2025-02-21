@@ -89,7 +89,7 @@ export default {
     return {
       ipInput: '',
       dnsInput: '8.8.8.8',
-      serverInput: 'http://127.0.0.1:8080/ip/',
+      serverInput: 'http://localhost/ip/',
       loading: false,
       error: '',
       ipInfos: [],
